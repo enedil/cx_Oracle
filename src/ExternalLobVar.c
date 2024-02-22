@@ -265,7 +265,7 @@ static int ExternalLobVar_InternalSize(
 static PyObject *ExternalLobVar_Value(
     udt_ExternalLobVar *var,            // variable to return the size of
     oraub8 offset,                      // offset into LOB
-    oraub8 amount)                      // amount to read from LOB
+    oraub8 amount, _Bool return_bytes)                      // amount to read from LOB
 {
     oraub8 length, bufferSize;
     PyObject *result;
@@ -298,7 +298,9 @@ static PyObject *ExternalLobVar_Value(
     }
 
     // return the result
-    if (var->lobVar->type == &vt_CLOB) {
+    if (return_bytes) {
+        result = PyBytes_FromStringAndSize(buffer, length);
+    } else if (var->lobVar->type == &vt_CLOB) {
         result = cxString_FromEncodedString(buffer, length,
                 var->lobVar->environment->encoding);
     } else if (var->lobVar->type == &vt_NCLOB) {
@@ -307,6 +309,7 @@ static PyObject *ExternalLobVar_Value(
     } else {
         result = PyBytes_FromStringAndSize(buffer, length);
     }
+
     PyMem_Free(buffer);
     return result;
 }
@@ -401,7 +404,7 @@ static PyObject *ExternalLobVar_Read(
 
     if (ExternalLobVar_Verify(var) < 0)
         return NULL;
-    return ExternalLobVar_Value(var, offset, amount);
+    return ExternalLobVar_Value(var, offset, amount, 1);
 }
 
 
@@ -414,7 +417,7 @@ static PyObject *ExternalLobVar_Str(
 {
     if (ExternalLobVar_Verify(var) < 0)
         return NULL;
-    return ExternalLobVar_Value(var, 1, (oraub8)(-1));
+    return ExternalLobVar_Value(var, 1, (oraub8)(-1), 0);
 }
 
 
